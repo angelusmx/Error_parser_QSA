@@ -152,7 +152,6 @@ def time_distance(timestamp_current):
 
 # ************** Main function ****************************
 
-
 def main_error_parser_M1(max_month):
 
     # initialize the completion variable to return at the end of the function

@@ -109,7 +109,14 @@ def parse_data(source, parsed_date, machine_module):
                 if length_row > 1:
                     old_time_stamp = row[0]
                     time_stamp = row[0]
-                    meldung = row[1]
+
+                    # Differentiate the Welding Data from the general meldung
+                    if length_row >= 40:
+                        meldung = str(row[1:length_row])
+
+                    else:
+                        # General case for the short Meldung texts
+                        meldung = row[1]
 
                 else:
                     time_stamp = old_time_stamp

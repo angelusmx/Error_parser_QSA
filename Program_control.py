@@ -23,13 +23,16 @@ logs_location_M2 = os.path.normpath('C:/Users/CanizalA/Desktop/logs_M2')
 logs_location_M1 = os.path.normpath('C:/Users/CanizalA/Desktop/logs_M1')
 
 # Define the max number of months, must match the number of existing table in MySQL
-max_month = 7
+max_month = 8
 
 # Initialize the variable modul_number
 modul_number = 2
 
 # Execute the raw parsing of the Modul 2 Errors
 if main_function(logs_location_M2, modul_number):
+
+    # Execute the welding parser (isolate and clean the weld data from the welding machine)
+
 
     # Call the error parser
     if main_error_parser_M2(max_month):
