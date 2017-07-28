@@ -189,7 +189,7 @@ def main_error_parser_M2(max_month):
                 while row is not None:
                     ID_row = row['ID']
 
-                    # ************** Activate to catch Meldung exceptions ******************
+                    # ************** Uncomment and activate breakpoint to catch Meldung exceptions ******************
                     print ("I am Grooot!")
 
                     # Fetch the previous 15 rows

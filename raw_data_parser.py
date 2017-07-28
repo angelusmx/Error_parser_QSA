@@ -112,7 +112,8 @@ def parse_data(source, parsed_date, machine_module):
 
                     # Differentiate the Welding Data from the general meldung
                     if length_row >= 40:
-                        meldung = str(row[1:length_row])
+                        meldung_temp = row[1:length_row]
+                        meldung = ";".join(str(x) for x in meldung_temp)
 
                     else:
                         # General case for the short Meldung texts

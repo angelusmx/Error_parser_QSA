@@ -14,6 +14,7 @@ import os
 from raw_data_parser import main_function
 from error_parser import main_error_parser_M2
 from error_parser_M1 import main_error_parser_M1
+from Welding_data_parser import purify_welding_data
 
 # Location of the log files to be processed
 
@@ -28,16 +29,27 @@ max_month = 8
 # Initialize the variable modul_number
 modul_number = 2
 
+# Turn the welding data option on or off
+process_welding = True
+
 # Execute the raw parsing of the Modul 2 Errors
 if main_function(logs_location_M2, modul_number):
 
-    # Execute the welding parser (isolate and clean the weld data from the welding machine)
+    # If the option is turned on execute this part
+    if process_welding:
 
+        # Execute the welding parser (isolate and clean the weld data from the welding machine)
+        if purify_welding_data(max_month):
+            print "welding data parsed correctly"
 
-    # Call the error parser
-    if main_error_parser_M2(max_month):
+    else:
 
-        print" \n\n --------- Parsing of Module 2 100% completed ---------- \n"
+        print "No welding data will be parsed"
+
+        # Call the error parser
+        if main_error_parser_M2(max_month):
+
+            print" \n\n --------- Parsing of Module 2 100% completed ---------- \n"
 
 # Re-initialize the variable modul_number
 modul_number = 1
