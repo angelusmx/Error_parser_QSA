@@ -52,7 +52,7 @@ def test_connection():
 
 
 def parsed_tables(name_of_table):
-    # TODO: discontinue this function, does not work when parsing individual files over time
+    # TODO: discontinue this function, does not work when parsing individual files over time, works fine in one-shot
     # This function registers the files after the parsing of the content in the table "parsed tables"
     # in the MySQL table
 

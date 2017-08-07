@@ -24,7 +24,8 @@ logs_location_M2 = os.path.normpath('C:/Users/CanizalA/Desktop/logs_M2')
 logs_location_M1 = os.path.normpath('C:/Users/CanizalA/Desktop/logs_M1')
 
 # Define the max number of months, must match the number of existing table in MySQL
-max_month = 8
+# Max month is always one more as the count of table for the months in Mysql
+max_month = 9
 
 # Initialize the variable modul_number
 modul_number = 2
