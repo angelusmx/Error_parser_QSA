@@ -19,7 +19,7 @@ global last_ID
 timestamp_last = "2015-01-01 00:00:00"
 
 # Create the connection to the database
-conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", db="logs_qsa",
+conn = MySQLdb.connect(host="HIL-ENG-L1", user="a.canizales", passwd="1123581321345589", db="logs_qsa",
                        cursorclass=DictCursor)
 
 # Create the cursor for the main query
@@ -151,7 +151,6 @@ def time_distance(timestamp_current):
 
 # ************** Main function ****************************
 
-
 def main_error_parser_M2(max_month):
 
     # initialize the completion variable to return at the end of the function
@@ -174,8 +173,8 @@ def main_error_parser_M2(max_month):
 
             # Parameter 1 is the ID that resulted from the main query
             sql_command_previous = "SELECT * FROM " + table + " WHERE ID = (SELECT MAX(ID) FROM " + table + " WHERE ID < %s)"
-            # TODO: I changed the sort from DESD to ASC, check that the effect on the subset of errors is correct
-            sql_command_select_n_previous = "SELECT * FROM " + table + " WHERE ID < %s ORDER BY ID LIMIT 15"
+            # TODO: I changed the sort from DESC to ASC, check that the effect on the subset of errors is correct
+            sql_command_select_n_previous = "SELECT * FROM " + table + " WHERE ID < %s ORDER BY ID DESC LIMIT 15"
             sql_command_insert = "INSERT INTO errors_m2 VALUES (%s, %s, %s)"
 
             # Cycle through the tables containing the data of every month
@@ -190,7 +189,7 @@ def main_error_parser_M2(max_month):
                     ID_row = row['ID']
 
                     # ************** Uncomment and activate breakpoint to catch Meldung exceptions ******************
-                    print ("I am Grooot!")
+                    #print ("I am Grooot!")
 
                     # Fetch the previous 15 rows
                     cur_sub.execute(sql_command_select_n_previous, (ID_row,))

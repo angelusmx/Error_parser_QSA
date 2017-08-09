@@ -12,7 +12,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 # Create the connection to the database
-conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", db="logs_qsa",
+conn = MySQLdb.connect(host="HIL-ENG-L1", user="a.canizales", passwd="1123581321345589", db="logs_qsa",
                        cursorclass=DictCursor)
 
 # The cursor to query the "parsed_files" table
@@ -88,7 +88,7 @@ def parse_data(source, parsed_date, machine_module):
     start_time = time.time()
     counter_leer = 0
 
-    with codecs.open(source, 'rU', encoding='UTF-8', errors='ignore') as the_source:
+    with codecs.open(source, 'rb', encoding='UTF-8', errors='ignore') as the_source:
 
         reader = csv.reader(the_source, delimiter='\t', dialect='excel-tab')
 

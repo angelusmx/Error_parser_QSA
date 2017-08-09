@@ -4,7 +4,7 @@ from MySQLdb.cursors import DictCursor
 from error_parser import create_time_stamp
 
 # Create the connection to the DB
-conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", db="logs_qsa",
+conn = MySQLdb.connect(host="HIL-ENG-L1", user="a.canizales", passwd="1123581321345589", db="logs_qsa",
                        cursorclass=DictCursor)
 
 # Create the cursor for the main query

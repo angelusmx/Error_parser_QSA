@@ -14,7 +14,7 @@ string_b = ""
 
 
 # Create the connection to the database
-conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", db="logs_qsa",
+conn = MySQLdb.connect(host="HIL-ENG-L1", user="a.canizales", passwd="1123581321345589", db="logs_qsa",
                        cursorclass=DictCursor)
 # Create the cursor for the main query
 cur = conn.cursor()
