@@ -4,7 +4,7 @@ from MySQLdb.cursors import DictCursor
 from error_parser import create_time_stamp
 
 # Create the connection to the DB
-conn = MySQLdb.connect(host="HIL-ENG-L1", user="a.canizales", passwd="1123581321345589", db="logs_qsa",
+conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", db="logs_qsa",
                        cursorclass=DictCursor)
 
 # Create the cursor for the main query
@@ -58,6 +58,8 @@ def purify_welding_data(max_month):
             while row is not None:
                 # print row
                 meldung = row['Meldung']
+                # replace the comma for the dot as decimal separator
+                meldung = meldung.replace(',', '.')
                 # this variable contains the list of
                 meldung_split = meldung.split(';')
 
@@ -65,11 +67,20 @@ def purify_welding_data(max_month):
                 # TODO: This is a desperate method, ideally pass the list (as tuple) to MySQL, so far no luck with that
                 welding_vars = {}
                 for x in range(0, 45):
-                    welding_vars["var{0}".format(x)] = "dummy"
+                    welding_vars["var{0}".format(x)] = 0
+
+                # for key, value in welding_vars.iteritems():
+                #     try:
+                #         welding_vars[key] = int(value)
+                #     except ValueError:
+                #         welding_vars[key] = str(value)
 
                 for y in range(0, 45):
                     var_name = "var" + str(y)
-                    welding_vars[var_name] = meldung_split[y]
+                    try:
+                        welding_vars[var_name] = float(meldung_split[y])
+                    except ValueError:
+                        welding_vars[var_name] = str(meldung_split[y])
 
                 # The date time variables from the row
                 zeit = row['Zeit']

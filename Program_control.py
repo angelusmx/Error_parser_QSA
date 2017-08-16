@@ -19,9 +19,9 @@ from Welding_data_parser import purify_welding_data
 # Location of the log files to be processed
 
 # ++++ Modul 2 ++++
-logs_location_M2 = os.path.normpath('U:\Tasks\67_Data_analyzer_QSA/logs_M2')
+logs_location_M2 = os.path.normpath('U:\\Tasks\\67_Data_analyzer_QSA\\logs_M2')
 # ++++ Modul 1 ++++
-logs_location_M1 = os.path.normpath('U:\Tasks\67_Data_analyzer_QSA/logs_M1')
+logs_location_M1 = os.path.normpath('U:\\Tasks\\67_Data_analyzer_QSA\\logs_M1')
 
 # Define the max number of months, must match the number of existing table in MySQL
 # Max month is always one more as the count of table for the months in Mysql
