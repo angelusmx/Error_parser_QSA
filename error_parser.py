@@ -161,6 +161,8 @@ def main_error_parser_M2(max_month):
         # The name of the table to iterate through
         table = "m2_0" + str(i)
 
+        # TODO To eliminate this function keep track of the last input of the table or change the workflow
+        # TODO the 2nd idea: parse raw information from the Log file then immediately parse the errors, then put in DB
         if not table_parsed_check(table):
 
             print "Parsing errors in table " + table

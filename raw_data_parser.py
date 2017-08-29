@@ -140,7 +140,7 @@ def parse_data(source, parsed_date, machine_module):
 
         # calculate the required time to finish the parsing
         elapsed_time = time.time() - start_time
-        print "\n" + "Parsing of file " + str(source) + " completed in " + str(elapsed_time) + " seconds"
+        print "Parsing of file " + str(source) + " completed in " + str(elapsed_time) + " seconds" + "\n"
 
 
 # ******************** END OF FUNCTION ***********************
