@@ -35,8 +35,13 @@ def purify_welding_data(max_month):
 
     for i in range(1, max_month):
 
-        # The name of the table to iterate through
-        table = "m2_0" + str(i)
+        if max_month > 9:
+            # The name of the table to iterate through
+            table = "m2_" + str(i)
+
+        else:
+            # The name of the table to iterate through
+            table = "m2_0" + str(i)
 
         print "**** Parsing welding data in table " + table + "*******"
 
