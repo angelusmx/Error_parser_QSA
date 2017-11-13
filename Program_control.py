@@ -25,11 +25,10 @@ logs_location_M1 = os.path.normpath('U:\\Tasks\\67_Data_analyzer_QSA\\logs_M1')
 
 # Define the max number of months, must match the number of existing table in MySQL
 # Max month is always one more as the count of table for the months in Mysql
-max_month = 13
+max_month = 12
 
 # Turn the welding data option on or off
-process_welding = True
-
+process_welding = False
 # Initialize the variable modul_number
 modul_number = 2
 

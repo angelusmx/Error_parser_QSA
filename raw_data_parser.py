@@ -128,7 +128,6 @@ def parse_data(source, parsed_date, machine_module):
 
                 # Insert the parsed info into MySQL
                 insert_mysql_ohne(parsed_date, time_stamp, meldung, month, machine_module)
-
             else:
                 if counter_leer > 4:
                     print " ******* Reached EOF ********"
