@@ -91,9 +91,6 @@ def parse_data(source, parsed_date, machine_module):
     # Initialize the ID value, the ID is set to AI in MySQL, something needs to be passed though
     default_id = 0
 
-    # Initialize the big loop counter
-    big_loop_count = 0
-
     # Define the number of rows to be parsed before the commit operation
     rows_per_loop = 500
 
@@ -144,9 +141,7 @@ def parse_data(source, parsed_date, machine_module):
                 # Insert the parsed info into MySQL when "rows_per_loop" lines are collected
                 if row_counter % rows_per_loop == 0:
                     insert_mysql_ohne(meldungen_list, month, machine_module)
-                    # print "the current row number " + str(row_counter)
-                    # Keep track of the number of big cycles
-                    big_loop_count = big_loop_count + rows_per_loop
+
                     # Reset the row counter
                     row_counter = 0
 
@@ -154,19 +149,21 @@ def parse_data(source, parsed_date, machine_module):
                     continue
             else:
                 if counter_leer > 4:
-                    #TODO: Insert maybe here the condition to search for the incomplete set of < than 500
                     print " ******* Reached EOF ******** "
-                    big_loop_count = 0
 
                     break
                 else:
                     counter_leer += 1
                     continue
 
+        # Check If there are parsed lines below 500 that were not inserted above
+        # Here "incomplete" sets will be loaded to the DB
+        if 0 < row_counter < rows_per_loop:
+            insert_mysql_ohne(meldungen_list, month, machine_module)
+
         # calculate the required time to finish the parsing
         elapsed_time = time.time() - start_time
         print "Parsing of file " + str(source) + " completed in " + str(elapsed_time) + " seconds" + "\n"
-
 
 # ******************** END OF FUNCTION ***********************
 

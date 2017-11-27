@@ -241,7 +241,8 @@ def main_error_parser_M2(max_month):
                     row = cur.fetchone()
 
             except:
-                print "Error: unable to fetch data"
+                # No row was found on the tables
+                print "Error: unable to fetch data, is the table empty?"
 
             finally:
                 # Output message of completion for the current table
