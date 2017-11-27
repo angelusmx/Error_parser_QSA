@@ -161,11 +161,11 @@ def main_error_parser_M1(max_month):
 
         if max_month > 9:
             # The name of the table to iterate through
-            table = "m2_" + str(i)
+            table = "m1_" + str(i)
 
         else:
             # The name of the table to iterate through
-            table = "m2_0" + str(i)
+            table = "m1_0" + str(i)
 
         print "Parsing errors in table " + table
 

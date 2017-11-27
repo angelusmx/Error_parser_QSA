@@ -38,7 +38,7 @@ if main_function(logs_location_M2, modul_number):
     # Call the error parser
     if main_error_parser_M2(max_month):
 
-        print" \n\n --------- Parsing of Module 2 100% completed ---------- \n"
+        print" \n --------- Parsing of Module 2 100% completed ---------- \n"
 
 # Re-initialize the variable modul_number
 modul_number = 1
@@ -49,7 +49,7 @@ if main_function(logs_location_M1, modul_number):
     # Call the error parser
     if main_error_parser_M1(max_month):
 
-        print" \n\n --------- Parsing of Module 2 100% completed ---------- \n"
+        print" \n\n --------- Parsing of Module 1 100% completed ---------- \n"
 
 # Parse the welding data if set so by the variable
 if process_welding:

@@ -55,18 +55,18 @@ def exception_catcher():
     # ************** END of function ***********************
 
 
-def insert_mysql_ohne(date_stamp, time_stamp, meldung, month, machine_module):
+def insert_mysql_ohne(meldungen_list_import,  month, machine_module):
     # Execute the cursor function without committing the changes to the DB
     # the commit command is made at the end of the loop before calling looping to the next file
 
     chosen_module = "m" + str(machine_module) + "_"
 
-    default_id = 0
     table = chosen_module + month
     sql_command = "INSERT INTO " + table + " VALUES (%s, %s, %s, %s)"
 
     try:
-        cur_log.execute(sql_command, (default_id, date_stamp, time_stamp, meldung))
+        cur_log.executemany(sql_command, meldungen_list_import)
+        conn.commit()
 
     except:
         conn.rollback()
@@ -88,6 +88,15 @@ def parse_data(source, parsed_date, machine_module):
     start_time = time.time()
     counter_leer = 0
 
+    # Initialize the ID value, the ID is set to AI in MySQL, something needs to be passed though
+    default_id = 0
+
+    # Initialize the big loop counter
+    big_loop_count = 0
+
+    # Define the number of rows to be parsed before the commit operation
+    rows_per_loop = 500
+
     with codecs.open(source, 'rb', encoding='UTF-8', errors='ignore') as the_source:
 
         reader = csv.reader(the_source, delimiter='\t', dialect='excel-tab')
@@ -98,7 +107,6 @@ def parse_data(source, parsed_date, machine_module):
         for row in reader:
             if row:
                 counter_leer = 0
-
                 # output the current amount of parsed strings to the console
                 row_counter += 1
                 # print "So far " + str(row_counter) + " rows parsed"
@@ -126,11 +134,29 @@ def parse_data(source, parsed_date, machine_module):
                 # split the date in its time components
                 year, month, day = parsed_date.split("-")
 
-                # Insert the parsed info into MySQL
-                insert_mysql_ohne(parsed_date, time_stamp, meldung, month, machine_module)
+                # Create the list for the first parsed row
+                if row_counter < 2:
+                    meldungen_list = [(default_id, parsed_date, time_stamp, meldung)]
+                else:
+                    # extend the list for the subsequent parsed rows
+                    meldungen_list.append((default_id, parsed_date, time_stamp, meldung))
+
+                # Insert the parsed info into MySQL when "rows_per_loop" lines are collected
+                if row_counter % rows_per_loop == 0:
+                    insert_mysql_ohne(meldungen_list, month, machine_module)
+                    # print "the current row number " + str(row_counter)
+                    # Keep track of the number of big cycles
+                    big_loop_count = big_loop_count + rows_per_loop
+                    # Reset the row counter
+                    row_counter = 0
+
+                else:
+                    continue
             else:
                 if counter_leer > 4:
-                    print " ******* Reached EOF ********"
+                    #TODO: Insert maybe here the condition to search for the incomplete set of < than 500
+                    print " ******* Reached EOF ******** "
+                    big_loop_count = 0
 
                     break
                 else:
@@ -237,7 +263,7 @@ def main_function(logs_path, machine_module):
                 parse_data(path_file, path_date, machine_module)
 
                 # commit the info held by the cursor to the DB
-                commit_changes()
+                #commit_changes()
 
                 # input the name of the file into the "parsed files" table
                 parsed_files(path_file)
