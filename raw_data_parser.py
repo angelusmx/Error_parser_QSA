@@ -10,6 +10,7 @@ from MySQLdb.cursors import DictCursor
 
 from error_parser_M2 import main_error_parser_M2
 from error_parser_M1 import main_error_parser_M1
+from Welding_data_parser import purify_welding_data
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -264,7 +265,7 @@ def file_existence_check(file_2_parse):
 
 # ******************* Main function ***********************
 
-def main_function(logs_path, machine_module):
+def main_function(logs_path, machine_module, welding_data):
 
     # define the boolean variable to return at the end of the function
     raw_parsing_complete = False
@@ -289,7 +290,16 @@ def main_function(logs_path, machine_module):
                 # call the error parsing function after the raw data has been parsed
                 # check the corresponding error parser (Module 1 or Module 2)
                 if machine_module == 2:
+                    # Run the error parser function
                     main_error_parser_M2(path_date)
+                    # Run the welding parser function if activated
+                    if welding_data:
+                        # if a positive result is returned by the function
+                        if purify_welding_data(path_date):
+                            print "*** Welding data for the file " + path_date + " completed ***"
+                        else:
+                            print "++++ Welding data could not be fetched ++++ "
+
                 elif machine_module == 1:
                     main_error_parser_M1(path_date)
                 else:

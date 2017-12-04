@@ -23,7 +23,7 @@ logs_location_M2 = os.path.normpath('U:\\Tasks\\67_Data_analyzer_QSA\\logs_M2')
 logs_location_M1 = os.path.normpath('U:\\Tasks\\67_Data_analyzer_QSA\\logs_M1')
 
 # Turn the welding data option on or off
-process_welding = False
+process_welding = True
 
 # Initialize the variable modul_number
 modul_number = 2
@@ -32,7 +32,7 @@ modul_number = 2
 # ***** This functions starts with the raw parsing of the data continuing with a direct parsing of the errors
 # ***** The evaluation is performed per individual file and not cyclically over the tables anymore
 # TODO: incorporate the welding data after the completion of the error parsing
-if main_function(logs_location_M2, modul_number):
+if main_function(logs_location_M2, modul_number, process_welding):
 
     print" \n --------- Parsing of Module 2 100% completed ---------- \n"
 
@@ -42,20 +42,10 @@ modul_number = 1
 # Execute the raw parsing of the Modul 1 Errors
 # ***** This functions starts with the raw parsing of the data continuing with a direct parsing of the errors
 # ***** The evaluation is performed per individual file and not cyclically over the tables anymore
-if main_function(logs_location_M1, modul_number):
+if main_function(logs_location_M1, modul_number, process_welding):
 
     print" \n --------- Parsing of Module 1 100% completed ---------- \n"
 
-# Parse the welding data if set so by the variable
-#if process_welding:
-
-    # Execute the welding parser (isolate and clean the weld data from the welding machine)
- #   if purify_welding_data(12):
-  #      print "welding data parsed correctly"
-
-#else:
-
- #   print "No welding data will be parsed"
 
 
 
