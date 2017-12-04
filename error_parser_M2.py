@@ -18,6 +18,7 @@ from error_generalizer import match_strings
 global last_ID
 timestamp_last = "2015-01-01 00:00:00"
 
+
 # Create the connection to the database
 conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", db="logs_qsa",
                        cursorclass=DictCursor)
@@ -151,119 +152,115 @@ def time_distance(timestamp_current):
 
 # ************** Main function ****************************
 
-def main_error_parser_M2(max_month):
+def main_error_parser_M2(file_date):
+
+    # Extract the month from the date of the file
+    file_year, file_month, file_day = file_date.split('-')
+    file_month = int(file_month)
 
     # initialize the completion variable to return at the end of the function
-    error_parser_complete = False
+    error_parser_m2_complete = False
 
-    for i in range(1, max_month):
+    # if month of the file > 9:
+    if file_month > 9:
+        # The name of the table to iterate through
+        table = "m2_" + str(file_month)
 
-        if max_month > 9:
-            # The name of the table to iterate through
-            table = "m2_" + str(i)
+    else:
+        # The name of the table to iterate through
+        table = "m2_0" + str(file_month)
 
-        else:
-            # The name of the table to iterate through
-            table = "m2_0" + str(i)
+    # Start the parsing process
+    print "Parsing errors in file " + file_date
 
-        # TODO To eliminate this function keep track of the last input of the table or change the workflow
-        # TODO the 2nd idea: parse raw information from the Log file then immediately parse the errors, then put in DB
-        if not table_parsed_check(table):
+    # The SQL Queries
+    search_string = '%Anweisung: Strung beseitigen%'
+    sql_command = "SELECT ID FROM %s WHERE Meldung LIKE '%s' AND DATE(Datum) = '%s'" % (table, search_string, file_date)
 
-            print "Parsing errors in table " + table
+    # Parameter 1 is the ID that resulted from the main query
+    sql_command_previous = "SELECT * FROM " + table + " WHERE ID = (SELECT MAX(ID) FROM " + table + " WHERE ID < %s)"
+    # TODO: I changed the sort from DESC to ASC, check that the effect on the subset of errors is correct
+    sql_command_select_n_previous = "SELECT * FROM " + table + " WHERE ID < %s ORDER BY ID DESC LIMIT 250"
+    sql_command_insert = "INSERT INTO errors_m2 VALUES (%s, %s, %s)"
 
-            # The SQL Queries
-            # sql_command = """SELECT %s FROM %s WHERE Meldung LIKE %s LIMIT 10"""
-            sql_command = "SELECT ID FROM " + table + " WHERE Meldung LIKE %s"
-            # sql_arg1 = table
-            search_string = '%' + 'Anweisung: Strung beseitigen' + '%'
+    try:
 
-            # Parameter 1 is the ID that resulted from the main query
-            sql_command_previous = "SELECT * FROM " + table + " WHERE ID = (SELECT MAX(ID) FROM " + table + " WHERE ID < %s)"
-            # TODO: I changed the sort from DESC to ASC, check that the effect on the subset of errors is correct
-            sql_command_select_n_previous = "SELECT * FROM " + table + " WHERE ID < %s ORDER BY ID DESC LIMIT 15"
-            sql_command_insert = "INSERT INTO errors_m2 VALUES (%s, %s, %s)"
+        # Load the cursors with the values from the DB
+        cur.execute(sql_command, )
 
-            # Cycle through the tables containing the data of every month
-            try:
-                # Execute the SQL command
-                cur.execute(sql_command, (search_string,))
+        # Pull a row from the cursor
+        row = cur.fetchone()
 
-                # Fetch the first line from the cursor
+        entry_count = 0
+
+        while row is not None:
+
+            # Fetch the first line from the cursor
+            # print "stop"
+            id_row = row['ID']
+
+            # ************** Uncomment and activate breakpoint to catch Meldung exceptions ******************
+            # print ("I am Grooot!")
+            # ***********************************************************************************************
+
+            # Fetch the previous 15 rows, the amount is a magic number in the SQL Command
+            cur_sub.execute(sql_command_select_n_previous, (id_row,))
+            reasons = cur_sub.fetchall()
+
+            for entry in reasons:
+                # Loop through the list of general errors
+                meldung_test = entry['Meldung']
+                real_meldung = match_strings(meldung_test)
+
+                # if the real meldung was found in the table break and store
+                if real_meldung != "No match found":
+                    break
+                else:
+                    # otherwise keep looking
+                    continue
+
+            if real_meldung == "No match found":
+                entry_count = entry_count + 1
+                print real_meldung + " " + str(entry_count)
+                # print entry_count
+
+            zeit = entry['Zeit']
+            datum = entry['Datum']
+            meldung = real_meldung
+            # Meldung = reason['Meldung']
+            default_id = 0
+
+            # Build the timestamp from the fetched values
+            time_stamp = create_time_stamp(datum, zeit)
+
+            # Evaluate the delta t between the meldungen, if bigger as 1 second accept it
+            # TODO: Replace the distance function with a string comparison: same line for stop and error message
+            # TODO: If the file is broken (time lapses) the 20 lines of the subquery can be from way in the past
+            if time_distance(time_stamp):
+
+                # insert the result from the subquery with the time stamp in the errors table in the DB
+                cur_sub.execute(sql_command_insert, (default_id, time_stamp, meldung))
+                conn.commit()
+
+            else:
                 row = cur.fetchone()
 
-                while row is not None:
-                    ID_row = row['ID']
+    except:
+            print "**** I have raised an exception ******"
 
-                    # ************** Uncomment and activate breakpoint to catch Meldung exceptions ******************
-                    #print ("I am Grooot!")
-
-                    # Fetch the previous 15 rows
-                    cur_sub.execute(sql_command_select_n_previous, (ID_row,))
-                    reason = cur_sub.fetchone()
-
-                    while reason is not None:
-                        # Loop through the list of general errors
-                        Meldung_test = reason['Meldung']
-                        Real_meldung = match_strings(Meldung_test)
-
-                        if Real_meldung == "No match found":
-                            reason = cur_sub.fetchone()
-                        else:
-                            break
-
-                    # Fetch the previous row
-                    # cur_sub.execute(sql_command_previous, (ID_row,))
-                    # reason = cur_sub.fetchone()
-
-                    # Output to the console
-                    # print reason
-
-                    Zeit = reason['Zeit']
-                    Datum = reason['Datum']
-                    Meldung = Real_meldung
-                    # Meldung = reason['Meldung']
-                    default_ID = 0
-
-                    # Build the timestamp from the fetched values
-                    time_stamp = create_time_stamp(Datum, Zeit)
-
-                    # Evaluate the delta t between the meldungen, if bigger as 1 second accept it
-                    # TODO: Replace the distance function with a string comparison: same line for stop and error message
-                    # TODO: If the file is broken (time lapses) the 20 lines of the subquery can be from way in the past
-                    if time_distance(time_stamp):
-
-                        # insert the result from the subquery with the time stamp in the errors table in the DB
-                        cur_sub.execute(sql_command_insert, (default_ID, time_stamp, Meldung))
-                        conn.commit()
-
-                    # Get the next record from the main query
-                    row = cur.fetchone()
-
-            except:
-                # No row was found on the tables
-                print "Error: unable to fetch data, is the table empty?"
-
-            finally:
-                # Output message of completion for the current table
-                print"*** Data extraction for the table " + table + " completed ***"
-                # Input the recently completed table in the DB
-                parsed_tables(table)
-
-    print "\n ++++++ Error parsing completed +++++"
+    finally:
+        # Output message of completion for the current file
+        print"*** Data extraction for the file " + str(file_date) + " completed ***" + "\n"
 
     # close the connection when finished
-    cur.close()
-    cur_sub.close()
-    cur_test.close()
-    cur_sub_10.close()
-    cur_table_parsed.close()
-    conn.close()
-
-    # Change the value of the variable to reflect completion
-    error_parser_complete = True
+    # cur.close()
+    # cur_sub.close()
+    # cur_test.close()
+    # cur_sub_10.close()
+    # cur_table_parsed.close()
+    # conn.close()
 
     # Return completion signal to caller
-    return error_parser_complete
+    return error_parser_m2_complete
 
 # ************** End of function ***************************

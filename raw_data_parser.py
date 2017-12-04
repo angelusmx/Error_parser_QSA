@@ -8,6 +8,9 @@ from os import listdir
 from os.path import isfile, join
 from MySQLdb.cursors import DictCursor
 
+from error_parser_M2 import main_error_parser_M2
+from error_parser_M1 import main_error_parser_M1
+
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -16,11 +19,34 @@ conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", d
                        cursorclass=DictCursor)
 
 # The cursor to query the "parsed_files" table
-cur = conn.cursor()
+cur_raw = conn.cursor()
 # The cursor to query the current log file
 cur_log = conn.cursor()
 # The cursor to write the parsed file to the "parsed_files" table
 cur_parsed = conn.cursor()
+
+
+# ************ The cursors of Module 2 ************
+# Create the cursor for the main query
+cur = conn.cursor()
+# Create the cursor for the subquery
+cur_sub = conn.cursor()
+# Create the cursor for the connection test
+cur_test = conn.cursor()
+# Create the cursor for the 10 row subset
+cur_sub_10 = conn.cursor()
+# The cursor to write the parsed file to the "parsed_files" table
+cur_table_parsed = conn.cursor()
+# *************************************************
+
+# ************ The cursors of Module 1 ************
+# Create the cursor for the main query
+cur_m1 = conn.cursor()
+# Create the cursor for the subquery
+cur_sub_m1 = conn.cursor()
+# Create the cursor for the connection test
+cur_test_m1 = conn.cursor()
+# *************************************************
 
 
 def test_connection():
@@ -28,11 +54,12 @@ def test_connection():
     # Retrieves the version of the DB as evidence of the connection
 
     try:
-        cur.execute("SELECT VERSION()")
-        results = cur.fetchone()
+        cur_raw.execute("SELECT VERSION()")
+        results = cur_raw.fetchone()
         # Check if anything at all is returned
         if results:
-            print("Database version : %s"), results
+            # print("Database version : %s"), results
+            # print "\n"
             return True
         else:
             print "ERROR IN CONNECTION"
@@ -92,7 +119,7 @@ def parse_data(source, parsed_date, machine_module):
     default_id = 0
 
     # Define the number of rows to be parsed before the commit operation
-    rows_per_loop = 500
+    rows_per_loop = 1000
 
     with codecs.open(source, 'rb', encoding='UTF-8', errors='ignore') as the_source:
 
@@ -163,7 +190,7 @@ def parse_data(source, parsed_date, machine_module):
 
         # calculate the required time to finish the parsing
         elapsed_time = time.time() - start_time
-        print "Parsing of file " + str(source) + " completed in " + str(elapsed_time) + " seconds" + "\n"
+        print "Parsing of file " + str(source) + " completed in " + str(elapsed_time) + " seconds"
 
 # ******************** END OF FUNCTION ***********************
 
@@ -215,8 +242,8 @@ def file_existence_check(file_2_parse):
     sql_command = "SELECT * FROM parsed_files"
 
     try:
-        cur.execute(sql_command)
-        row = cur.fetchone()
+        cur_raw.execute(sql_command)
+        row = cur_raw.fetchone()
         while row is not None:
             if file_2_parse == row['File_name']:
                 # If a match exist set the variable and exit
@@ -225,7 +252,7 @@ def file_existence_check(file_2_parse):
                 return b_exists
             else:
                 # If a match does not exist, pull one more row and continue searching
-                row = cur.fetchone()
+                row = cur_raw.fetchone()
                 b_exists = False
         print"The File " + file_2_parse + " has not been parsed before"
         return b_exists
@@ -249,28 +276,27 @@ def main_function(logs_path, machine_module):
         logs_list = list_files(logs_path)
         dates_list = slice_date(logs_path)
 
-        # loop through the list and parse the data in the file
+        # loop through the list containing the file names and parse the data in each one
         for i, j in zip(logs_list, dates_list):
             path_file = logs_path + "\\" + i
             path_date = j
 
             # skip the file if it has been parsed already
             if not file_existence_check(path_file):
-                # parse the row complete file
+                # parse the raw file
                 parse_data(path_file, path_date, machine_module)
 
-                # commit the info held by the cursor to the DB
-                #commit_changes()
+                # call the error parsing function after the raw data has been parsed
+                # check the corresponding error parser (Module 1 or Module 2)
+                if machine_module == 2:
+                    main_error_parser_M2(path_date)
+                elif machine_module == 1:
+                    main_error_parser_M1(path_date)
+                else:
+                    print "Invalid Module number found"
 
                 # input the name of the file into the "parsed files" table
                 parsed_files(path_file)
-
-        # close the connection when finished
-        # cur_parsed.close()
-        # cur_log.close()
-        # cur.close()
-        # conn.close()
-        print "\n" + "****** Process finished ******* "
 
     # Update the value of the variable to report completion to caller
     raw_parsing_complete = True

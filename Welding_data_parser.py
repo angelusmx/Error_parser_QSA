@@ -1,7 +1,7 @@
 import MySQLdb
 import MySQLdb.cursors
 from MySQLdb.cursors import DictCursor
-from error_parser import create_time_stamp
+from error_parser_M2 import create_time_stamp
 
 # Create the connection to the DB
 conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", db="logs_qsa",

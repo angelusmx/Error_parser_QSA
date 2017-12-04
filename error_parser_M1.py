@@ -23,25 +23,24 @@ conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", d
                        cursorclass=DictCursor)
 
 # Create the cursor for the main query
-cur = conn.cursor()
+cur_m1 = conn.cursor()
 # Create the cursor for the subquery
-cur_sub = conn.cursor()
+cur_sub_m1 = conn.cursor()
 # Create the cursor for the connection test
-cur_test = conn.cursor()
-# Create the cursor for the 10 row subset
-cur_sub_10 = conn.cursor()
+cur_test_m1 = conn.cursor()
 # The cursor to write the parsed file to the "parsed_files" table
 cur_table_parsed = conn.cursor()
 
 
 def test_connection():
     try:
-        cur_test.execute("SELECT VERSION()")
-        results = cur_test.fetchone()
+        cur_test_m1.execute("SELECT VERSION()")
+        results = cur_test_m1.fetchone()
         # Check if anything at all is returned
         if results:
             print("Database version : %s"), results
-            cur_test.close()
+            print "I reached the test connection of Module 1"
+            cur_test_m1.close()
             return True
         else:
             print "ERROR IN CONNECTION"
@@ -77,8 +76,8 @@ def table_parsed_check(table_2_parse):
     sql_command_tables = "SELECT * FROM parsed_tables"
 
     try:
-        cur.execute(sql_command_tables)
-        tables = cur.fetchone()
+        cur_m1.execute(sql_command_tables)
+        tables = cur_m1.fetchone()
         while tables is not None:
             if table_2_parse == tables['Table_name']:
                 # If a match exist set the variable and exit
@@ -87,7 +86,7 @@ def table_parsed_check(table_2_parse):
                 return b_exists
             else:
                 # If a match does not exist, pull one more row and continue searching
-                tables = cur.fetchone()
+                tables = cur_m1.fetchone()
                 b_exists = False
         print"The table " + table_2_parse + " has not been parsed before"
         return b_exists
@@ -152,95 +151,103 @@ def time_distance(timestamp_current):
 
 # ************** Main function ****************************
 
-def main_error_parser_M1(max_month):
+def main_error_parser_M1(file_date):
+
+    # Extract the month from the date of the file
+    file_year, file_month, file_day = file_date.split('-')
+    file_month = int(file_month)
 
     # initialize the completion variable to return at the end of the function
-    error_parser_complete = False
+    error_parser_m1_complete = False
 
-    for i in range(1, max_month):
+    if file_month > 9:
+        # The name of the table to iterate through
+        table = "m1_" + str(file_month)
 
-        if max_month > 9:
-            # The name of the table to iterate through
-            table = "m1_" + str(i)
+    else:
+        # The name of the table to iterate through
+        table = "m1_0" + str(file_month)
 
-        else:
-            # The name of the table to iterate through
-            table = "m1_0" + str(i)
+    print "Parsing errors in file " + file_date
 
-        print "Parsing errors in table " + table
+    # The SQL Queries
 
-        # The SQL Queries
+    command_select_errors = "SELECT * FROM " + table + " WHERE Meldung LIKE %s"
+    command_select_string = '%' + 'MESInterface_SetStatusDirect_Bool, MES_STOER_MODUL1_' + '%'
+    command_insert = "INSERT INTO errors_m1 VALUES (%s, %s, %s)"
 
-        command_select_errors = "SELECT * FROM " + table + " WHERE Meldung LIKE %s"
-        command_select_string = '%' + 'MESInterface_SetStatusDirect_Bool, MES_STOER_MODUL1_' + '%'
-        command_insert = "INSERT INTO errors_m1 VALUES (%s, %s, %s)"
+    # Cycle through the tables containing the data of every month
+    try:
+        # Execute the SQL command to find the errors based on command_select_string
+        cur_m1.execute(command_select_errors, (command_select_string,))
 
-        # Cycle through the tables containing the data of every month
-        try:
-            # Execute the SQL command to find the errors based on command_select_string
-            cur.execute(command_select_errors, (command_select_string,))
+        # Fetch the first line from the cursor
+        row = cur_m1.fetchone()
 
-            # Fetch the first line from the cursor
-            row = cur.fetchone()
+        while row is not None:
 
-            while row is not None:
+            # Split the strings based after the comas
+            meldung_in_row = row['Meldung']
+            meldung_split = meldung_in_row.split(',')
 
-                # Split the strings based after the comas
-                meldung_in_row = row['Meldung']
-                meldung_split = meldung_in_row.split(',')
+            # If Meldung True then evaluate it, otherwise discard it
+            # Note to self: there is a blank space before the word
+            if meldung_split[2] == " TRUE":
+                Zeit = row['Zeit']
+                Datum = row['Datum']
 
-                # If Meldung True then evaluate it, otherwise discard it
-                # Note to self: there is a blank space before the word
-                if meldung_split[2] == " TRUE":
-                    Zeit = row['Zeit']
-                    Datum = row['Datum']
+                # Separate the station name from the complete meldung string
+                root_cause_split = meldung_split[1].split('_')
+                # Store the size of the split string, some meldungen have a sub category
+                length_root_cause = len(root_cause_split)
 
-                    # Separate the station name from the complete meldung string
-                    root_cause_split = meldung_split[1].split('_')
-                    # Store the size of the split string, some meldungen have a sub category
-                    length_root_cause = len(root_cause_split)
+                # If there is a sub category
+                if length_root_cause > 4:
+                    root_cause_text = root_cause_split[3] + " " + root_cause_split[4]
 
-                    # If there is a sub category
-                    if length_root_cause > 4:
-                        root_cause_text = root_cause_split[3] + " " + root_cause_split[4]
-
-                    # If no subcategory
-                    else:
-                        # Example: 'MESInterface_SetStatusDirect_Bool', ' MES_STOER_MODUL1_BEFUELLEN', ' TRUE'
-                        root_cause_text = root_cause_split[3]
-
-                    # ID increments automatically, as setup in the DB
-                    default_ID = 0
-
-                    # Build the timestamp from the fetched values
-                    time_stamp = create_time_stamp(Datum, Zeit)
-
-                    # Evaluate the delta t between the meldungen, if bigger as 1 second accept it
-                    if time_distance(time_stamp):
-                        # insert the result from the subquery with the time stamp in the errors table in the DB
-                        cur_sub.execute(command_insert, (default_ID, time_stamp, root_cause_text))
-                        conn.commit()
-                    else:
-                        row = cur.fetchone()
-
-                # if the word "TRUE" is not found after splitting the string, pull another row
+                # If no subcategory
                 else:
-                    row = cur.fetchone()
-        except:
-            print "Error: unable to fetch data"
+                    # Example: 'MESInterface_SetStatusDirect_Bool', ' MES_STOER_MODUL1_BEFUELLEN', ' TRUE'
+                    root_cause_text = root_cause_split[3]
 
-        finally:
-            # Output message of completion for the current table
-            print"*** Data extraction for the table " + table + " completed ***"
-            # Input the recently completed table in the DB
-            parsed_tables(table)
+                # ID increments automatically, as setup in the DB
+                default_ID = 0
+
+                # Build the timestamp from the fetched values
+                time_stamp = create_time_stamp(Datum, Zeit)
+
+                # Evaluate the delta t between the meldungen, if bigger as 1 second accept it
+                if time_distance(time_stamp):
+                    # insert the result from the subquery with the time stamp in the errors table in the DB
+                    cur_sub_m1.execute(command_insert, (default_ID, time_stamp, root_cause_text))
+                    conn.commit()
+                else:
+                    row = cur_m1.fetchone()
+
+            # if the word "TRUE" is not found after splitting the string, pull another row
+            else:
+                row = cur_m1.fetchone()
+    except:
+        print "Error: unable to fetch data"
+
+    finally:
+        # Output message of completion for the current table
+        print"*** Data extraction for the file " + str(file_date) + " completed ***" + "\n"
+        # Input the recently completed table in the DB
+        # parsed_tables(table)
 
     # close the cursors and the connection to DB
-    cur.close()
-    cur_sub.close()
-    cur_test.close()
-    cur_sub_10.close()
-    cur_table_parsed.close()
-    conn.close()
+    # cur.close()
+    # cur_sub.close()
+    # cur_test.close()
+    # cur_sub_10.close()
+    # cur_table_parsed.close()
+    # conn.close()
+
+    # Change the value of the variable to reflect completion
+    error_parser_m1_complete = True
+
+    # Return completion signal to caller
+    return error_parser_m1_complete
 
     # ************** End of function ***************************
