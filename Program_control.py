@@ -14,6 +14,7 @@ import os
 from raw_data_parser import main_function as raw_parser_main
 from error_parser_M2 import main_error_parser_M2 as error_parser_m2
 from error_parser_M1 import main_error_parser_M1 as error_parser_m1
+from Zeit_messen import main as measure_time
 
 # Location of the log files to be processed
 
@@ -31,6 +32,10 @@ modul_number = 2
 # Execute the parsing of the Modul 2 Errors from the files into the DB
 # ***** This functions starts with the raw parsing of the data continuing with a direct parsing of the errors
 # ***** The evaluation is performed per individual file and not cyclically over the tables anymore
+
+measure_time()
+
+
 if raw_parser_main(logs_location_M2, modul_number):
     print " ------- M2 Raw parsing complete -------- \n"
 
