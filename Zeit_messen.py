@@ -158,7 +158,6 @@ def calculate_time_delta(date_start, date_end, code):
 
                         # insert the new line into the csv file
                         file_writer.writerow([entry_time, delta_value])
-                        print ""
 
         finally:
                     # Export the list into a .csv file
