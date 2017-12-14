@@ -11,9 +11,9 @@
 # *********************************************************************************************
 
 import os
-from raw_data_parser import main_function
-
-from Welding_data_parser import purify_welding_data
+from raw_data_parser import main_function as raw_parser_main
+from error_parser_M2 import main_error_parser_M2 as error_parser_m2
+from error_parser_M1 import main_error_parser_M1 as error_parser_m1
 
 # Location of the log files to be processed
 
@@ -28,13 +28,15 @@ process_welding = True
 # Initialize the variable modul_number
 modul_number = 2
 
-# Execute the parsing of the Modul 2 Errors
+# Execute the parsing of the Modul 2 Errors from the files into the DB
 # ***** This functions starts with the raw parsing of the data continuing with a direct parsing of the errors
 # ***** The evaluation is performed per individual file and not cyclically over the tables anymore
-# TODO: incorporate the welding data after the completion of the error parsing
-if main_function(logs_location_M2, modul_number, process_welding):
+if raw_parser_main(logs_location_M2, modul_number):
+    print " ------- M2 Raw parsing complete -------- \n"
 
-    print" \n --------- Parsing of Module 2 100% completed ---------- \n"
+    # Execute the Error Analysis
+    if error_parser_m2():
+        print " -------- M2 Error parsing complete -------- \n"
 
 # Re-initialize the variable modul_number
 modul_number = 1
@@ -42,10 +44,12 @@ modul_number = 1
 # Execute the raw parsing of the Modul 1 Errors
 # ***** This functions starts with the raw parsing of the data continuing with a direct parsing of the errors
 # ***** The evaluation is performed per individual file and not cyclically over the tables anymore
-if main_function(logs_location_M1, modul_number, process_welding):
+if raw_parser_main(logs_location_M1, modul_number):
+    print " ------- M1 Raw parsing complete -------- \n"
 
-    print" \n --------- Parsing of Module 1 100% completed ---------- \n"
-
+    # Execute the Error Analysis
+    if error_parser_m1():
+        print " -------- M1 Error parsing complete -------- \n"
 
 
 

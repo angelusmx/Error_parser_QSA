@@ -1,5 +1,4 @@
 import sys
-import os
 import codecs
 import csv
 import MySQLdb
@@ -7,10 +6,6 @@ import time
 from os import listdir
 from os.path import isfile, join
 from MySQLdb.cursors import DictCursor
-
-from error_parser_M2 import main_error_parser_M2
-from error_parser_M1 import main_error_parser_M1
-from Welding_data_parser import purify_welding_data
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -25,29 +20,6 @@ cur_raw = conn.cursor()
 cur_log = conn.cursor()
 # The cursor to write the parsed file to the "parsed_files" table
 cur_parsed = conn.cursor()
-
-
-# ************ The cursors of Module 2 ************
-# Create the cursor for the main query
-cur = conn.cursor()
-# Create the cursor for the subquery
-cur_sub = conn.cursor()
-# Create the cursor for the connection test
-cur_test = conn.cursor()
-# Create the cursor for the 10 row subset
-cur_sub_10 = conn.cursor()
-# The cursor to write the parsed file to the "parsed_files" table
-cur_table_parsed = conn.cursor()
-# *************************************************
-
-# ************ The cursors of Module 1 ************
-# Create the cursor for the main query
-cur_m1 = conn.cursor()
-# Create the cursor for the subquery
-cur_sub_m1 = conn.cursor()
-# Create the cursor for the connection test
-cur_test_m1 = conn.cursor()
-# *************************************************
 
 
 def test_connection():
@@ -78,11 +50,6 @@ def list_files(logs):
     # ************** END of function ***********************
 
 
-def exception_catcher():
-    print"I have found an error"
-    # ************** END of function ***********************
-
-
 def insert_mysql_ohne(meldungen_list_import,  month, machine_module):
     # Execute the cursor function without committing the changes to the DB
     # the commit command is made at the end of the loop before calling looping to the next file
@@ -101,11 +68,6 @@ def insert_mysql_ohne(meldungen_list_import,  month, machine_module):
         conn.close()
 
 # ************** End of function ***************************
-
-
-def commit_changes():
-    conn.commit()
-# ************ End of function ******************************
 
 
 def parse_data(source, parsed_date, machine_module):
@@ -196,13 +158,6 @@ def parse_data(source, parsed_date, machine_module):
 # ******************** END OF FUNCTION ***********************
 
 
-def cls():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-
-# ******************* END OF FUNCTION ************************
-
-
 def slice_date(logs_path):
     # Retrieve the names of the files in the input folder and extract the date from the file name
 
@@ -220,15 +175,15 @@ def slice_date(logs_path):
     return the_dates_list
 
 
-def parsed_files(path_of_files):
+def parsed_files(path_of_files, machine_module):
     # This function registers the files after the parsing of the content in the table "parsed files"
     # in the MySQL table
 
     default_id = 0
-    sql_command = "INSERT INTO parsed_files VALUES (%s, %s)"
+    sql_command = "INSERT INTO parsed_files_raw VALUES (%s, %s, %s)"
 
     try:
-        cur_parsed.execute(sql_command, (default_id, path_of_files))
+        cur_parsed.execute(sql_command, (default_id, path_of_files, machine_module))
         conn.commit()
 
     except:
@@ -240,7 +195,7 @@ def file_existence_check(file_2_parse):
     # Iterate through the list to see if the current file to be parsed has been processed already
 
     b_exists = False
-    sql_command = "SELECT * FROM parsed_files"
+    sql_command = "SELECT * FROM parsed_files_raw"
 
     try:
         cur_raw.execute(sql_command)
@@ -265,7 +220,7 @@ def file_existence_check(file_2_parse):
 
 # ******************* Main function ***********************
 
-def main_function(logs_path, machine_module, welding_data):
+def main_function(logs_path, machine_module):
 
     # define the boolean variable to return at the end of the function
     raw_parsing_complete = False
@@ -287,29 +242,16 @@ def main_function(logs_path, machine_module, welding_data):
                 # parse the raw file
                 parse_data(path_file, path_date, machine_module)
 
-                # call the error parsing function after the raw data has been parsed
-                # check the corresponding error parser (Module 1 or Module 2)
-                if machine_module == 2:
-                    # Run the error parser function
-                    main_error_parser_M2(path_date)
-                    # Run the welding parser function if activated
-                    if welding_data:
-                        # if a positive result is returned by the function
-                        if purify_welding_data(path_date):
-                            print "*** Welding data for the file " + path_date + " completed ***"
-                        else:
-                            print "++++ Welding data could not be fetched ++++ "
-
-                elif machine_module == 1:
-                    main_error_parser_M1(path_date)
-                else:
-                    print "Invalid Module number found"
-
                 # input the name of the file into the "parsed files" table
-                parsed_files(path_file)
+                parsed_files(path_file, machine_module)
 
     # Update the value of the variable to report completion to caller
     raw_parsing_complete = True
+
+    # Close the open cursors
+    cur_raw.close()
+    cur_log.close()
+    cur_parsed.close()
 
     return raw_parsing_complete
 # ******************** END OF FUNCTION **********************
