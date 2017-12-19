@@ -11,6 +11,7 @@ import MySQLdb
 import MySQLdb.cursors
 from MySQLdb.cursors import DictCursor
 import datetime as dt
+from error_generalizer import match_strings
 from datetime import datetime
 
 # Definition of the global variable
@@ -18,31 +19,31 @@ from datetime import datetime
 global last_ID
 timestamp_last = "2015-01-01 00:00:00"
 
+
 # Create the connection to the database
 conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", db="logs_qsa",
                        cursorclass=DictCursor)
 
 # Create the cursor for the main query
-cur_m1 = conn.cursor()
+cur = conn.cursor()
 # Create the cursor for the subquery
-cur_sub_m1 = conn.cursor()
+cur_sub = conn.cursor()
 # Create the cursor for the connection test
-cur_test_m1 = conn.cursor()
-# The cursor to write the parsed file to the "parsed_files_raw" table
-cur_raw_parsed = conn.cursor()
-# The cursor to read the file  "parsed_files_raw"
+cur_test = conn.cursor()
+# The cursor to write the parsed file to the "parsed_files_errors" table
 cur_parsed_errors = conn.cursor()
+# The cursor to read the raw parsed files from the "parsed_files_raw" table
+cur_raw_parsed = conn.cursor()
 
 
 def test_connection():
     try:
-        cur_test_m1.execute("SELECT VERSION()")
-        results = cur_test_m1.fetchone()
+        cur_test.execute("SELECT VERSION()")
+        results = cur_test.fetchone()
         # Check if anything at all is returned
         if results:
-            print("Database version : %s"), results
-            print "I reached the test connection of Module 1"
-            cur_test_m1.close()
+            # print("Database version : %s"), results
+            cur_test.close()
             return True
         else:
             print "ERROR IN CONNECTION"
@@ -121,9 +122,8 @@ def time_distance(timestamp_current):
         # overwrite the value with the current timestamp from caller
         timestamp_last = timestamp_now
 
-        # if the delta t is bigger than 2 second
-        if delta_t >= dt.timedelta(0, 2, 0, 0, 0, 0, 0):
-            # print delta_t
+        # if the delta t is bigger than 5 second
+        if delta_t >= dt.timedelta(0, 5, 0, 0, 0, 0, 0):
             return True
 
         else:
@@ -147,113 +147,131 @@ def parsed_files(path_of_files, machine_module):
         conn.rollback()
         conn.close()
 
-
 # ************** Main function ****************************
 
-def main_error_parser_M1():
+
+def main_error_parser_M2():
 
     # initialize the completion variable to return at the end of the function
-    error_parser_m1_complete = False
+    error_parser_m2_complete = False
 
     # The current machine module
-    machine_module = 1
+    machine_module = 2
 
     # extract all the files that have been already parsed for raw data
     already_raw_parsed = extract_names_raw_parsed()
 
     # Iterate through the list containing the already raw parsed files
     for data_point in already_raw_parsed:
+
         # Extract the month from the date of the file
         file_datetime = datetime.strptime(data_point, '%Y%m%d')
         file_month = file_datetime.month
 
+        # if month of the file > 9:
         if file_month > 9:
             # The name of the table to iterate through
-            table = "m1_" + str(file_month)
+            table = "m2_" + str(file_month)
 
         else:
             # The name of the table to iterate through
-            table = "m1_0" + str(file_month)
+            table = "m2_0" + str(file_month)
 
+        # Start the parsing process
         print "Parsing errors in file " + data_point
 
         # The SQL Queries
+        search_string = '%Anweisung: Strung beseitigen%'
+        sql_command = "SELECT ID FROM %s WHERE Meldung LIKE '%s' AND DATE(Datum) = '%s'" % (table, search_string, data_point)
 
-        command_select_errors = "SELECT * FROM " + table + " WHERE Meldung LIKE %s"
-        command_select_string = '%' + 'MESInterface_SetStatusDirect_Bool, MES_STOER_MODUL1_' + '%'
-        command_insert = "INSERT INTO errors_m1 VALUES (%s, %s, %s)"
+        # Parameter 1 is the ID that resulted from the main query
+        # TODO: I changed the sort from DESC to ASC, check that the effect on the subset of errors is correct
+        sql_command_select_n_previous = "SELECT * FROM " + table + " WHERE ID < %s ORDER BY ID DESC LIMIT 250"
+        sql_command_insert = "INSERT INTO errors_m2 VALUES (%s, %s, %s)"
 
-        # Cycle through the tables containing the data of every month
         try:
-            # Execute the SQL command to find the errors based on command_select_string
-            cur_m1.execute(command_select_errors, (command_select_string,))
 
-            # Fetch the first line from the cursor
-            row = cur_m1.fetchone()
+            # Load the cursors with the values from the DB
+            cur.execute(sql_command, )
+
+            # Pull a row from the cursor
+            row = cur.fetchone()
+
+            entry_count = 0
 
             while row is not None:
 
-                # Split the strings based after the comas
-                meldung_in_row = row['Meldung']
-                meldung_split = meldung_in_row.split(',')
+                # Fetch the first line from the cursor
+                # print "stop"
+                id_row = row['ID']
 
-                # If Meldung True then evaluate it, otherwise discard it
-                # Note to self: there is a blank space before the word
-                if meldung_split[2] == " TRUE":
-                    Zeit = row['Zeit']
-                    Datum = row['Datum']
+                # ************** Uncomment and activate breakpoint to catch Meldung exceptions ******************
+                # print ("I am Grooot!")
+                # ***********************************************************************************************
 
-                    # Separate the station name from the complete meldung string
-                    root_cause_split = meldung_split[1].split('_')
-                    # Store the size of the split string, some meldungen have a sub category
-                    length_root_cause = len(root_cause_split)
+                # Fetch the previous 15 rows, the amount is a magic number in the SQL Command
+                cur_sub.execute(sql_command_select_n_previous, (id_row,))
+                reasons = cur_sub.fetchall()
 
-                    # If there is a sub category
-                    if length_root_cause > 4:
-                        root_cause_text = root_cause_split[3] + " " + root_cause_split[4]
+                for entry in reasons:
+                    # Loop through the list of general errors
+                    meldung_test = entry['Meldung']
+                    real_meldung = match_strings(meldung_test)
 
-                    # If no subcategory
+                    # if the real meldung was found in the table break and store
+                    if real_meldung != "No match found":
+                        break
                     else:
-                        # Example: 'MESInterface_SetStatusDirect_Bool', ' MES_STOER_MODUL1_BEFUELLEN', ' TRUE'
-                        root_cause_text = root_cause_split[3]
+                        # otherwise keep looking
+                        continue
 
-                    # ID increments automatically, as setup in the DB
-                    default_ID = 0
+                if real_meldung == "No match found":
+                    entry_count = entry_count + 1
+                    print real_meldung + " " + str(entry_count)
+                    # print entry_count
 
-                    # Build the timestamp from the fetched values
-                    time_stamp = create_time_stamp(Datum, Zeit)
+                zeit = entry['Zeit']
+                datum = entry['Datum']
+                meldung = real_meldung
+                # Meldung = reason['Meldung']
+                default_id = 0
 
-                    # Evaluate the delta t between the meldungen, if bigger as 1 second accept it
-                    if time_distance(time_stamp):
-                        # insert the result from the subquery with the time stamp in the errors table in the DB
-                        cur_sub_m1.execute(command_insert, (default_ID, time_stamp, root_cause_text))
-                        conn.commit()
-                    else:
-                        row = cur_m1.fetchone()
+                # Build the timestamp from the fetched values
+                time_stamp = create_time_stamp(datum, zeit)
 
-                # if the word "TRUE" is not found after splitting the string, pull another row
+                # Evaluate the delta t between the meldungen, if bigger as 1 second accept it
+                # TODO: Replace the distance function with a string comparison: same line for stop and error message
+                # TODO: If the file is broken (time lapses) the 20 lines of the subquery can be from way in the past
+                if time_distance(time_stamp):
+
+                    # insert the result from the subquery with the time stamp in the errors table in the DB
+                    cur_sub.execute(sql_command_insert, (default_id, time_stamp, meldung))
+                    conn.commit()
+
                 else:
-                    row = cur_m1.fetchone()
+                    row = cur.fetchone()
+
         except:
-            print "Error: unable to fetch data"
+                print "**** I have raised an exception ******"
 
         finally:
             # Enter the name of the error parsed file in the table
             parsed_files(data_point, machine_module)
 
-            # Output message of completion for the current table
+            # Output message of completion for the current file
             print"*** Data extraction for the file " + str(data_point) + " completed ***" + "\n"
 
-    # close the cursors and the connection to DB
-    cur_m1.close()
-    cur_sub_m1.close()
-    cur_test_m1.close()
+    # Update the completion variable
+    error_parser_m2_complete = True
+
+    # close the connection when finished
+    cur.close()
+    cur_sub.close()
+    cur_test.close()
     cur_raw_parsed.close()
     cur_parsed_errors.close()
 
-    error_parser_m1_complete = True
-
     # Return completion signal to caller
-    return error_parser_m1_complete
+    return error_parser_m2_complete
 
-    # ************** End of function ***************************
+# ************** End of function ***************************

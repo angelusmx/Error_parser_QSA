@@ -11,41 +11,51 @@
 # *********************************************************************************************
 
 import os
-from raw_data_parser import main_function
-from error_parser import main_error_parser_M2
-from error_parser_M1 import main_error_parser_M1
+from raw_data_parser import main_function as raw_parser_main
+from error_parser_M2 import main_error_parser_M2 as error_parser_m2
+from error_parser_M1 import main_error_parser_M1 as error_parser_m1
+from Zeit_messen import main as measure_time
 
 # Location of the log files to be processed
 
 # ++++ Modul 2 ++++
-logs_location_M2 = os.path.normpath('C:/Users/CanizalA/Desktop/logs_M2')
+logs_location_M2 = os.path.normpath('U:\\Tasks\\67_Data_analyzer_QSA\\logs_M2')
 # ++++ Modul 1 ++++
-logs_location_M1 = os.path.normpath('C:/Users/CanizalA/Desktop/logs_M1')
+logs_location_M1 = os.path.normpath('U:\\Tasks\\67_Data_analyzer_QSA\\logs_M1')
 
-# Define the max number of months, must match the number of existing table in MySQL
-max_month = 7
+# Turn the welding data option on or off
+process_welding = True
 
 # Initialize the variable modul_number
 modul_number = 2
 
-# Execute the raw parsing of the Modul 2 Errors
-if main_function(logs_location_M2, modul_number):
+# Execute the parsing of the Modul 2 Errors from the files into the DB
+# ***** This functions starts with the raw parsing of the data continuing with a direct parsing of the errors
+# ***** The evaluation is performed per individual file and not cyclically over the tables anymore
 
-    # Call the error parser
-    if main_error_parser_M2(max_month):
+measure_time()
+print "time measure complete"
 
-        print" \n\n --------- Parsing of Module 2 100% completed ---------- \n"
+# if raw_parser_main(logs_location_M2, modul_number):
+    # print " ------- M2 Raw parsing complete -------- \n"
+
+    # Execute the Error Analysis
+    # if error_parser_m2():
+        # print " -------- M2 Error parsing complete -------- \n"
 
 # Re-initialize the variable modul_number
 modul_number = 1
 
 # Execute the raw parsing of the Modul 1 Errors
-if main_function(logs_location_M1, modul_number):
+# ***** This functions starts with the raw parsing of the data continuing with a direct parsing of the errors
+# ***** The evaluation is performed per individual file and not cyclically over the tables anymore
+if raw_parser_main(logs_location_M1, modul_number):
+    print " ------- M1 Raw parsing complete -------- \n"
 
-    # Call the error parser
-    if main_error_parser_M1(max_month):
+    # Execute the Error Analysis
+    if error_parser_m1():
+        print " -------- M1 Error parsing complete -------- \n"
 
-        print "Modul 1 complete"
 
 
 

@@ -1,5 +1,4 @@
 import sys
-import os
 import codecs
 import csv
 import MySQLdb
@@ -16,7 +15,7 @@ conn = MySQLdb.connect(host="localhost", user="root", passwd="Midvieditza12!", d
                        cursorclass=DictCursor)
 
 # The cursor to query the "parsed_files" table
-cur = conn.cursor()
+cur_raw = conn.cursor()
 # The cursor to query the current log file
 cur_log = conn.cursor()
 # The cursor to write the parsed file to the "parsed_files" table
@@ -28,11 +27,12 @@ def test_connection():
     # Retrieves the version of the DB as evidence of the connection
 
     try:
-        cur.execute("SELECT VERSION()")
-        results = cur.fetchone()
+        cur_raw.execute("SELECT VERSION()")
+        results = cur_raw.fetchone()
         # Check if anything at all is returned
         if results:
-            print("Database version : %s"), results
+            # print("Database version : %s"), results
+            # print "\n"
             return True
         else:
             print "ERROR IN CONNECTION"
@@ -50,34 +50,24 @@ def list_files(logs):
     # ************** END of function ***********************
 
 
-def exception_catcher():
-    print"I have found an error"
-    # ************** END of function ***********************
-
-
-def insert_mysql_ohne(date_stamp, time_stamp, meldung, month, machine_module):
+def insert_mysql_ohne(meldungen_list_import,  month, machine_module):
     # Execute the cursor function without committing the changes to the DB
     # the commit command is made at the end of the loop before calling looping to the next file
 
     chosen_module = "m" + str(machine_module) + "_"
 
-    default_id = 0
     table = chosen_module + month
     sql_command = "INSERT INTO " + table + " VALUES (%s, %s, %s, %s)"
 
     try:
-        cur_log.execute(sql_command, (default_id, date_stamp, time_stamp, meldung))
+        cur_log.executemany(sql_command, meldungen_list_import)
+        conn.commit()
 
     except:
         conn.rollback()
         conn.close()
 
 # ************** End of function ***************************
-
-
-def commit_changes():
-    conn.commit()
-# ************ End of function ******************************
 
 
 def parse_data(source, parsed_date, machine_module):
@@ -88,7 +78,13 @@ def parse_data(source, parsed_date, machine_module):
     start_time = time.time()
     counter_leer = 0
 
-    with codecs.open(source, 'rU', encoding='UTF-8', errors='ignore') as the_source:
+    # Initialize the ID value, the ID is set to AI in MySQL, something needs to be passed though
+    default_id = 0
+
+    # Define the number of rows to be parsed before the commit operation
+    rows_per_loop = 1000
+
+    with codecs.open(source, 'rb', encoding='UTF-8', errors='ignore') as the_source:
 
         reader = csv.reader(the_source, delimiter='\t', dialect='excel-tab')
 
@@ -98,7 +94,6 @@ def parse_data(source, parsed_date, machine_module):
         for row in reader:
             if row:
                 counter_leer = 0
-
                 # output the current amount of parsed strings to the console
                 row_counter += 1
                 # print "So far " + str(row_counter) + " rows parsed"
@@ -109,7 +104,15 @@ def parse_data(source, parsed_date, machine_module):
                 if length_row > 1:
                     old_time_stamp = row[0]
                     time_stamp = row[0]
-                    meldung = row[1]
+
+                    # Differentiate the Welding Data from the general meldung
+                    if length_row >= 40:
+                        meldung_temp = row[1:length_row]
+                        meldung = ";".join(str(x) for x in meldung_temp)
+
+                    else:
+                        # General case for the short Meldung texts
+                        meldung = row[1]
 
                 else:
                     time_stamp = old_time_stamp
@@ -118,31 +121,41 @@ def parse_data(source, parsed_date, machine_module):
                 # split the date in its time components
                 year, month, day = parsed_date.split("-")
 
-                # Insert the parsed info into MySQL
-                insert_mysql_ohne(parsed_date, time_stamp, meldung, month, machine_module)
+                # Create the list for the first parsed row
+                if row_counter < 2:
+                    meldungen_list = [(default_id, parsed_date, time_stamp, meldung)]
+                else:
+                    # extend the list for the subsequent parsed rows
+                    meldungen_list.append((default_id, parsed_date, time_stamp, meldung))
 
+                # Insert the parsed info into MySQL when "rows_per_loop" lines are collected
+                if row_counter % rows_per_loop == 0:
+                    insert_mysql_ohne(meldungen_list, month, machine_module)
+
+                    # Reset the row counter
+                    row_counter = 0
+
+                else:
+                    continue
             else:
                 if counter_leer > 4:
-                    print " ******* Reached EOF ********"
+                    print " ******* Reached EOF ******** "
 
                     break
                 else:
                     counter_leer += 1
                     continue
 
+        # Check If there are parsed lines below 500 that were not inserted above
+        # Here "incomplete" sets will be loaded to the DB
+        if 0 < row_counter < rows_per_loop:
+            insert_mysql_ohne(meldungen_list, month, machine_module)
+
         # calculate the required time to finish the parsing
         elapsed_time = time.time() - start_time
-        print "\n" + "Parsing of file " + str(source) + " completed in " + str(elapsed_time) + " seconds"
-
+        print "Parsing of file " + str(source) + " completed in " + str(elapsed_time) + " seconds"
 
 # ******************** END OF FUNCTION ***********************
-
-
-def cls():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-
-# ******************* END OF FUNCTION ************************
 
 
 def slice_date(logs_path):
@@ -162,15 +175,15 @@ def slice_date(logs_path):
     return the_dates_list
 
 
-def parsed_files(path_of_files):
+def parsed_files(path_of_files, machine_module):
     # This function registers the files after the parsing of the content in the table "parsed files"
     # in the MySQL table
 
     default_id = 0
-    sql_command = "INSERT INTO parsed_files VALUES (%s, %s)"
+    sql_command = "INSERT INTO parsed_files_raw VALUES (%s, %s, %s)"
 
     try:
-        cur_parsed.execute(sql_command, (default_id, path_of_files))
+        cur_parsed.execute(sql_command, (default_id, path_of_files, machine_module))
         conn.commit()
 
     except:
@@ -182,11 +195,11 @@ def file_existence_check(file_2_parse):
     # Iterate through the list to see if the current file to be parsed has been processed already
 
     b_exists = False
-    sql_command = "SELECT * FROM parsed_files"
+    sql_command = "SELECT * FROM parsed_files_raw"
 
     try:
-        cur.execute(sql_command)
-        row = cur.fetchone()
+        cur_raw.execute(sql_command)
+        row = cur_raw.fetchone()
         while row is not None:
             if file_2_parse == row['File_name']:
                 # If a match exist set the variable and exit
@@ -195,7 +208,7 @@ def file_existence_check(file_2_parse):
                 return b_exists
             else:
                 # If a match does not exist, pull one more row and continue searching
-                row = cur.fetchone()
+                row = cur_raw.fetchone()
                 b_exists = False
         print"The File " + file_2_parse + " has not been parsed before"
         return b_exists
@@ -219,31 +232,26 @@ def main_function(logs_path, machine_module):
         logs_list = list_files(logs_path)
         dates_list = slice_date(logs_path)
 
-        # loop through the list and parse the data in the file
+        # loop through the list containing the file names and parse the data in each one
         for i, j in zip(logs_list, dates_list):
             path_file = logs_path + "\\" + i
             path_date = j
 
             # skip the file if it has been parsed already
             if not file_existence_check(path_file):
-                # parse the row complete file
+                # parse the raw file
                 parse_data(path_file, path_date, machine_module)
 
-                # commit the info held by the cursor to the DB
-                commit_changes()
-
                 # input the name of the file into the "parsed files" table
-                parsed_files(path_file)
-
-        # close the connection when finished
-        # cur_parsed.close()
-        # cur_log.close()
-        # cur.close()
-        # conn.close()
-        print "\n" + "****** Process finished ******* "
+                parsed_files(path_file, machine_module)
 
     # Update the value of the variable to report completion to caller
     raw_parsing_complete = True
+
+    # Close the open cursors
+    cur_raw.close()
+    cur_log.close()
+    cur_parsed.close()
 
     return raw_parsing_complete
 # ******************** END OF FUNCTION **********************
