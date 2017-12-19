@@ -34,14 +34,14 @@ modul_number = 2
 # ***** The evaluation is performed per individual file and not cyclically over the tables anymore
 
 measure_time()
+print "time measure complete"
 
-
-if raw_parser_main(logs_location_M2, modul_number):
-    print " ------- M2 Raw parsing complete -------- \n"
+# if raw_parser_main(logs_location_M2, modul_number):
+    # print " ------- M2 Raw parsing complete -------- \n"
 
     # Execute the Error Analysis
-    if error_parser_m2():
-        print " -------- M2 Error parsing complete -------- \n"
+    # if error_parser_m2():
+        # print " -------- M2 Error parsing complete -------- \n"
 
 # Re-initialize the variable modul_number
 modul_number = 1

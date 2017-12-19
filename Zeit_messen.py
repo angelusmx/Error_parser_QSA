@@ -41,21 +41,25 @@ def calculate_time_delta(date_start, date_end, code):
     # if month of the file > 9:
     if file_month > 9:
         # The name of the table to iterate through
-        table = "m2_" + str(file_month)
+        table = "m1_" + str(file_month)
 
     else:
         # The name of the table to iterate through
-        table = "m2_0" + str(file_month)
+        table = "m1_0" + str(file_month)
 
     # The search strings
     search_string_takt_assembly = "CRobi::SendRcv Snd=\x02StartUmsetzen\x04"
     search_string_welding = '%' + 'DataRecorder 020 - POLSONO 4FACH' + '%'
+    search_string_befuller = '%' + 'O_STOPPER_BEFUELLEN= 1' + '%'
 
     sql_command_welding = "SELECT Datum, Zeit FROM %s WHERE Meldung LIKE '%s' AND Datum BETWEEN '%s' AND '%s'" % \
                   (table, search_string_welding, date_start, date_end)
 
     sql_command_assembly = "SELECT Datum, Zeit, Meldung FROM %s WHERE Meldung LIKE '%s' AND Datum BETWEEN '%s' AND '%s'" % \
                   (table, search_string_takt_assembly, date_start, date_end)
+
+    sql_command_befuller = "SELECT Datum, Zeit, Meldung FROM %s WHERE Meldung LIKE '%s' AND Datum BETWEEN '%s' AND '%s'" % \
+                  (table, search_string_befuller, date_start, date_end)
 
     # initialize the list for loading the delta time values
     delta_time = []
@@ -119,7 +123,7 @@ def calculate_time_delta(date_start, date_end, code):
             if code == 2:
 
                 # Load the cursors with the values from the DB
-                cur.execute(sql_command_assembly, )
+                cur.execute(sql_command_befuller, )
 
                 # Pull a row from the cursor
                 results = cur.fetchall()
@@ -168,8 +172,8 @@ def calculate_time_delta(date_start, date_end, code):
 
 def main():
 
-    start_date = '20171211'
-    end_date = '20171211'
+    start_date = '20171213'
+    end_date = '20171213'
     # TODO:The user enters here a number that corresponds to one of the possible stations coded
     # The Assembly station
     station_code = 2
