@@ -34,6 +34,7 @@ modul_number = 2
 # ***** The evaluation is performed per individual file and not cyclically over the tables anymore
 
 measure_time()
+print "hello"
 print "time measure complete"
 
 if raw_parser_main(logs_location_M2, modul_number):
