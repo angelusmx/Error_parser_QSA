@@ -41,16 +41,17 @@ def calculate_time_delta(date_start, date_end, code):
     # if month of the file > 9:
     if file_month > 9:
         # The name of the table to iterate through
-        table = "m1_" + str(file_month)
+        table = "m2_" + str(file_month)
 
     else:
         # The name of the table to iterate through
-        table = "m1_0" + str(file_month)
+        table = "m2_0" + str(file_month)
 
     # The search strings
     search_string_takt_assembly = "CRobi::SendRcv Snd=\x02StartUmsetzen\x04"
-    search_string_welding = '%' + 'DataRecorder 020 - POLSONO 4FACH' + '%'
+    search_string_welding = '%' + 'DataRecorder 020 - POLSONO 4 FACH-57' + '%'
     search_string_befuller = '%' + 'O_STOPPER_BEFUELLEN= 1' + '%'
+    search_string_2D_label = '%' + 'Takt Schweissen / 2DCode 302 - Fahre zur Position 2' + '%'
 
     sql_command_welding = "SELECT Datum, Zeit FROM %s WHERE Meldung LIKE '%s' AND Datum BETWEEN '%s' AND '%s'" % \
                   (table, search_string_welding, date_start, date_end)
@@ -60,6 +61,9 @@ def calculate_time_delta(date_start, date_end, code):
 
     sql_command_befuller = "SELECT Datum, Zeit, Meldung FROM %s WHERE Meldung LIKE '%s' AND Datum BETWEEN '%s' AND '%s'" % \
                   (table, search_string_befuller, date_start, date_end)
+
+    sql_command_2D_Etiketten = "SELECT Datum, Zeit FROM %s WHERE Meldung LIKE '%s' AND Datum BETWEEN '%s' AND '%s'" % \
+                  (table, search_string_2D_label, date_start, date_end)
 
     # initialize the list for loading the delta time values
     delta_time = []
@@ -79,7 +83,8 @@ def calculate_time_delta(date_start, date_end, code):
             if code == 1:
 
                 # Load the cursors with the values from the DB
-                cur.execute(sql_command_welding, )
+                # cur.execute(sql_command_welding, )  # Provisionally changed 20.02.2018
+                cur.execute(sql_command_2D_Etiketten, )
 
                 # Pull a row from the cursor
                 results = cur.fetchall()
@@ -113,11 +118,11 @@ def calculate_time_delta(date_start, date_end, code):
                         current_time_stamp = datetime.combine(datetime.date(entry_date), datetime.time(entry_time))
 
                         # substract the time between the entries and append to list
-                        delta_value = current_time_stamp - previous_time_stamp
+                        delta_value = (current_time_stamp - previous_time_stamp).total_seconds()
                         delta_time.append(delta_value)
 
                         # insert the new line into the csv file
-                        file_writer.writerow([delta_value])
+                        file_writer.writerow([entry_time, delta_value])
 
             # The assembly process
             if code == 2:
@@ -172,11 +177,11 @@ def calculate_time_delta(date_start, date_end, code):
 
 def main():
 
-    start_date = '20171213'
-    end_date = '20171213'
+    start_date = '20180205'
+    end_date = '20180205'
     # TODO:The user enters here a number that corresponds to one of the possible stations coded
-    # The Assembly station
-    station_code = 2
+    # The welding station
+    station_code = 1
 
     #start_date = raw_input("give the start date 'YYYYMMDD' ")
     #end_date = raw_input("give the end date 'YYYYMMDD' ")
